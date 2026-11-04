@@ -323,19 +323,19 @@ habit-tracker/
 ## 10. Roadmap / milestones
 
 ### Phase 0: Setup (≈ 1–2 days)
-- [ ] Vite + React + TS + Tailwind scaffold, ESLint + Prettier
-- [ ] Vitest, Playwright, GitHub Actions CI (lint, typecheck, test, build)
+- [x] Vite + React + TS + Tailwind scaffold, Prettier (ESLint still to add)
+- [x] Vitest, Playwright, GitHub Actions CI (typecheck, test, build, E2E)
 - [ ] Deploy a preview to Vercel/Netlify
 
 ### Phase 1: MVP, local only (≈ 1–2 weeks)
-- [ ] Dexie schema + repositories
-- [ ] Create/edit/delete habits (boolean type first)
-- [ ] Today screen with one-tap toggling
-- [ ] `buildGrid` + `level` with unit tests
-- [ ] `<Heatmap>` SVG component: desktop layout, tooltips, legend, month labels
-- [ ] Habit detail page with heatmap + current/longest streak
-- [ ] Responsive layouts for phone, tablet and desktop
-- [ ] JSON export/import
+- [x] Dexie schema + repositories
+- [x] Create/edit/delete habits (boolean type first)
+- [x] Today screen with one-tap toggling
+- [x] `buildGrid` + `level` with unit tests
+- [x] `<Heatmap>` SVG component: desktop layout, tooltips, legend, month labels
+- [x] Habit detail page with heatmap + current/longest streak
+- [x] Responsive layouts for phone, tablet and desktop
+- [x] JSON export/import
 
 ### Phase 2: Richer habits + PWA (≈ 1–2 weeks)
 - [ ] Count and duration habit types, schedules (weekdays, N per week)
