@@ -33,3 +33,12 @@ The first `npm run e2e` needs a browser: run `npx playwright install chromium`, 
 
 The build is a static site (hash routing, relative paths), so `dist/` can be hosted on
 GitHub Pages, Netlify or Vercel as-is.
+
+## Deployment
+
+`.github/workflows/deploy.yml` builds and publishes the app to GitHub Pages on every push
+to the default branch (or run it by hand from the Actions tab). One-time setup:
+**Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+The site will be at `https://abhidas0101001-beep.github.io/Habit-Tracker/`. Your habit data
+never leaves your device, so the public site only serves the app's code.
