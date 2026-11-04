@@ -35,7 +35,7 @@ shaded by how much of a habit you completed that day.
 | Dates | **date-fns** (+ `date-fns-tz`) | Tree-shakeable, immutable, good week/ISO helpers |
 | Heatmap rendering | **Custom SVG component** (no chart library) | Full control over layout, a11y and touch; about 371 `<rect>`s is cheap |
 | Offline / install | **vite-plugin-pwa** (Workbox) | Service worker, manifest, update prompts |
-| Backend (optional sync) | **Supabase** (Postgres + Auth + Row Level Security) | Free tier, auth included, no server to run |
+| Backend (sync) | **Supabase free plan** (Postgres + Auth + Row Level Security) | Free, auth included, no server to run; a single user needs about 1 MB a year of the 500 MB allowance (see §7.1) |
 | Testing | **Vitest** + **React Testing Library** + **Playwright** | Unit, component and cross-device E2E (Playwright has phone/tablet presets) |
 | Hosting | **Vercel / Netlify / GitHub Pages** | Static hosting, HTTPS (needed for PWA) |
 
@@ -258,6 +258,25 @@ in it.
 - Since an entry's id is `habitId:date`, two devices logging the same day merge
   into a single record instead of creating duplicates.
 
+### 7.1 Single-user setup (this app has one user: the owner)
+
+The app syncs one person's data across their laptop, tablet and phone, so the
+Supabase **free plan** is more than enough: about 3,650 rows (≈ 1 MB) a year
+for 10 daily habits, against a 500 MB limit. Three extra steps:
+
+1. **Keep the project awake.** Free projects pause after 7 days without
+   activity. Nothing is lost (every device keeps its own copy and catches up
+   later), but sync stops until the project is restored in the dashboard. A
+   scheduled GitHub Action (`.github/workflows/keepalive.yml`) runs every
+   3 days and makes one small read request using a read-only key stored as a
+   repository secret.
+2. **Lock sign-ups.** After the owner's account exists, turn off
+   "Allow new users to sign up" in Supabase Auth settings. RLS
+   (`user_id = auth.uid()`) stays as a second safeguard.
+3. **Own the backups.** Free-plan backups are limited, so a nightly GitHub
+   Action exports `habits` and `entries` to JSON and commits them to a
+   **private** backup repository. The in-app JSON export is the manual fallback.
+
 ---
 
 ## 8. Screens and navigation
@@ -328,10 +347,12 @@ habit-tracker/
 - [ ] Stats charts (weekday bars, monthly trend)
 
 ### Phase 3: Accounts + sync (≈ 1–2 weeks)
-- [ ] Supabase project, tables, RLS policies
-- [ ] Email magic-link + Google/Apple sign-in
+- [ ] Supabase project (free plan), tables, RLS policies
+- [ ] Email magic-link sign-in for the owner, then disable new sign-ups
 - [ ] Push/pull sync with tombstones, Realtime updates
-- [ ] Migrate local-only data on first sign-in
+- [ ] Upload existing local data on first sign-in
+- [ ] Keep-alive GitHub Action (every 3 days) so the project never pauses
+- [ ] Nightly JSON backup Action to a private repository
 - [ ] Conflict and offline E2E tests (two browser contexts)
 
 ### Phase 4: Native packaging + reminders (≈ 1–2 weeks)
@@ -369,6 +390,8 @@ habit-tracker/
 | Heatmap is cramped on phones | Compact 26-week mode, horizontal scroll pinned to today, larger hit areas |
 | iOS PWA limits (storage eviction, push) | Request persistent storage (`navigator.storage.persist()`), encourage sign-in for backup, Capacitor build for full native features |
 | Sync conflicts | One record per habit-day + last-write-wins + tombstones; keeps the model simple |
+| Supabase free project pauses after 7 idle days | Keep-alive Action every 3 days; app keeps working offline while paused |
+| Someone else signs up to the hosted app | Disable new sign-ups after creating the owner account; RLS on every table |
 | Losing data in a local-only setup | Regular export reminder, optional auto-backup to cloud once signed in |
 
 ---
