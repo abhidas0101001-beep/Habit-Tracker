@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router';
 import { Button, Card, HabitBadge, PALETTES } from '../components/ui';
 import { createHabit, deleteHabit, setArchived, updateHabit } from '../data/repo';
 import { WEEKDAY_SHORT } from '../domain/schedule';
-import type { PaletteName, Schedule } from '../domain/types';
+import type { HabitType, PaletteName, Schedule } from '../domain/types';
 import { useSettings } from '../hooks/settings';
 import { useHabit } from '../hooks/useData';
 
@@ -17,8 +17,12 @@ export function HabitEditorPage() {
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('');
   const [color, setColor] = useState<PaletteName>('green');
-  const [kind, setKind] = useState<'daily' | 'weekdays'>('daily');
+  const [type, setType] = useState<HabitType>('boolean');
+  const [target, setTarget] = useState(8);
+  const [unit, setUnit] = useState('');
+  const [kind, setKind] = useState<Schedule['kind']>('daily');
   const [days, setDays] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [times, setTimes] = useState(3);
   const [loaded, setLoaded] = useState(!editing);
 
   useEffect(() => {
@@ -26,10 +30,12 @@ export function HabitEditorPage() {
     setName(habit.name);
     setIcon(habit.icon ?? '');
     setColor(habit.color);
-    if (habit.schedule.kind === 'weekdays') {
-      setKind('weekdays');
-      setDays(habit.schedule.days);
-    }
+    setType(habit.type);
+    setTarget(habit.target);
+    setUnit(habit.unit ?? '');
+    setKind(habit.schedule.kind);
+    if (habit.schedule.kind === 'weekdays') setDays(habit.schedule.days);
+    if (habit.schedule.kind === 'timesPerWeek') setTimes(habit.schedule.times);
     setLoaded(true);
   }, [habit, loaded]);
 
@@ -38,13 +44,30 @@ export function HabitEditorPage() {
     return <Card>This habit doesn’t exist any more.</Card>;
   }
 
-  const schedule: Schedule = kind === 'daily' ? { kind: 'daily' } : { kind: 'weekdays', days };
-  const valid = name.trim().length > 0 && (kind === 'daily' || days.length > 0);
+  const schedule: Schedule =
+    kind === 'daily'
+      ? { kind: 'daily' }
+      : kind === 'weekdays'
+        ? { kind: 'weekdays', days }
+        : { kind: 'timesPerWeek', times };
+  const maxTarget = type === 'duration' ? 1440 : 9999;
+  const valid =
+    name.trim().length > 0 &&
+    (kind !== 'weekdays' || days.length > 0) &&
+    (type === 'boolean' || (target >= 1 && target <= maxTarget));
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!valid) return;
-    const input = { name: name.trim(), icon: icon.trim() || undefined, color, schedule };
+    const input = {
+      name: name.trim(),
+      icon: icon.trim() || undefined,
+      color,
+      schedule,
+      type,
+      target: type === 'boolean' ? 1 : Math.round(target),
+      unit: type === 'count' ? unit.trim() || undefined : undefined,
+    };
     if (editing && habit) {
       await updateHabit(habit.id, input);
       navigate(`/habits/${habit.id}`, { replace: true });
@@ -88,6 +111,70 @@ export function HabitEditorPage() {
           </label>
         </div>
 
+        <fieldset className="space-y-3">
+          <legend className="mb-2 text-sm font-medium">Type</legend>
+          <div className="grid grid-cols-3 gap-2">
+            {(
+              [
+                ['boolean', 'Yes / no'],
+                ['count', 'Count'],
+                ['duration', 'Minutes'],
+              ] as const
+            ).map(([t, label]) => (
+              <label key={t}>
+                <input
+                  type="radio"
+                  name="type"
+                  checked={type === t}
+                  disabled={editing}
+                  onChange={() => {
+                    setType(t);
+                    setTarget(t === 'duration' ? 30 : 8);
+                  }}
+                  className="peer sr-only"
+                />
+                <span className="flex min-h-10 cursor-pointer items-center justify-center rounded-lg border border-line text-sm peer-checked:border-fg peer-checked:font-semibold peer-focus-visible:ring-2 peer-focus-visible:ring-fg peer-disabled:cursor-default peer-disabled:opacity-60 peer-checked:peer-disabled:opacity-100">
+                  {label}
+                </span>
+              </label>
+            ))}
+          </div>
+          {editing && (
+            <p className="text-xs text-muted">The type can’t change after a habit is created.</p>
+          )}
+          {type !== 'boolean' && (
+            <div className="flex gap-3">
+              <label className="w-28">
+                <span className="mb-1 block text-sm">Daily target</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={maxTarget}
+                  required
+                  value={target}
+                  onChange={(e) => setTarget(Number(e.target.value))}
+                  className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2.5"
+                />
+              </label>
+              {type === 'count' ? (
+                <label className="flex-1">
+                  <span className="mb-1 block text-sm">Unit</span>
+                  <input
+                    value={unit}
+                    maxLength={20}
+                    onChange={(e) => setUnit(e.target.value)}
+                    placeholder="glasses, pages, …"
+                    className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2.5"
+                  />
+                </label>
+              ) : (
+                <span className="self-end pb-3 text-sm text-muted">minutes a day</span>
+              )}
+            </div>
+          )}
+        </fieldset>
+
         <fieldset>
           <legend className="mb-2 text-sm font-medium">Colour</legend>
           <div className="flex gap-3">
@@ -113,9 +200,9 @@ export function HabitEditorPage() {
 
         <fieldset className="space-y-3">
           <legend className="mb-2 text-sm font-medium">Schedule</legend>
-          <div className="flex gap-2">
-            {(['daily', 'weekdays'] as const).map((k) => (
-              <label key={k} className="flex-1">
+          <div className="grid grid-cols-3 gap-2">
+            {(['daily', 'weekdays', 'timesPerWeek'] as const).map((k) => (
+              <label key={k}>
                 <input
                   type="radio"
                   name="kind"
@@ -124,7 +211,11 @@ export function HabitEditorPage() {
                   className="peer sr-only"
                 />
                 <span className="flex min-h-10 cursor-pointer items-center justify-center rounded-lg border border-line text-sm peer-checked:border-fg peer-checked:font-semibold peer-focus-visible:ring-2 peer-focus-visible:ring-fg">
-                  {k === 'daily' ? 'Every day' : 'Specific days'}
+                  {k === 'daily'
+                    ? 'Every day'
+                    : k === 'weekdays'
+                      ? 'Specific days'
+                      : 'Times a week'}
                 </span>
               </label>
             ))}
@@ -149,10 +240,28 @@ export function HabitEditorPage() {
               })}
             </div>
           )}
+          {kind === 'timesPerWeek' && (
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-sm">
+                <select
+                  value={times}
+                  onChange={(e) => setTimes(Number(e.target.value))}
+                  className="rounded-lg border border-line bg-surface-2 px-2 py-2"
+                >
+                  {[1, 2, 3, 4, 5, 6].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+                times a week, on any days
+              </label>
+            </div>
+          )}
         </fieldset>
       </Card>
 
-      <div className="flex gap-2">
+      <div className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 -mx-4 flex gap-2 bg-bg/95 px-4 py-3 backdrop-blur md:static md:mx-0 md:bg-transparent md:p-0">
         <Button type="submit" variant="primary" disabled={!valid} className="flex-1">
           {editing ? 'Save' : 'Create habit'}
         </Button>

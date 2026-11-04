@@ -1,13 +1,15 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router';
+import { BarChart } from '../components/charts/BarChart';
 import { Heatmap, HeatmapLegend } from '../components/heatmap/Heatmap';
-import { DaySheet } from '../components/habits/DaySheet';
-import { Card, HabitBadge, Stat, buttonClass } from '../components/ui';
-import { type DateKey } from '../domain/dates';
+import { LogSheet } from '../components/habits/LogSheet';
+import { Button, Card, HabitBadge, Stat, buttonClass } from '../components/ui';
+import { formatLong, type DateKey } from '../domain/dates';
+import { describeTarget, formatProgress } from '../domain/format';
 import { weeksBetween } from '../domain/grid';
 import { habitRatios } from '../domain/overview';
 import { describeSchedule, isScheduled } from '../domain/schedule';
-import { computeStats, habitStartKey } from '../domain/stats';
+import { computeStats, habitStartKey, monthlyRates, weekdayRates } from '../domain/stats';
 import { useSettings } from '../hooks/settings';
 import { useHabit, useValuesByHabit } from '../hooks/useData';
 import { useToday } from '../hooks/useToday';
@@ -20,11 +22,20 @@ export function HabitDetailPage() {
   const { weekStart } = useSettings();
   const [range, setRange] = useState<'last' | number>('last');
   const [openDate, setOpenDate] = useState<DateKey | null>(null);
+  const [showTable, setShowTable] = useState(false);
 
   const values = useMemo(() => all?.get(id ?? '') ?? new Map<DateKey, number>(), [all, id]);
   const ratios = useMemo(() => (habit ? habitRatios(habit, values) : new Map()), [habit, values]);
   const stats = useMemo(
-    () => (habit ? computeStats(habit, values, today) : null),
+    () => (habit ? computeStats(habit, values, today, weekStart) : null),
+    [habit, values, today, weekStart],
+  );
+  const byWeekday = useMemo(
+    () => (habit ? weekdayRates(habit, values, today, weekStart) : []),
+    [habit, values, today, weekStart],
+  );
+  const byMonth = useMemo(
+    () => (habit ? monthlyRates(habit, values, today) : []),
     [habit, values, today],
   );
 
@@ -52,8 +63,13 @@ export function HabitDetailPage() {
     endDate = range === thisYear ? today : `${range}-12-31`;
     weeks = weeksBetween(startDate, `${range}-12-31`, weekStart);
   }
+  const hitWord = habit.type === 'boolean' ? 'check-ins' : 'days on target';
   const yearCount =
-    range === 'last' ? null : [...values.keys()].filter((d) => d.startsWith(`${range}-`)).length;
+    range === 'last'
+      ? null
+      : [...ratios.entries()].filter(([d, r]) => d.startsWith(`${range}-`) && r >= 1).length;
+  const unit = stats.streakUnit === 'week' ? 'wk' : 'd';
+  const target = describeTarget(habit);
 
   return (
     <div className="space-y-6">
@@ -62,6 +78,7 @@ export function HabitDetailPage() {
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-2xl font-bold">{habit.name}</h1>
           <p className="text-sm text-muted">
+            {target && `${target} · `}
             {describeSchedule(habit)}
             {habit.archivedAt && ' · archived'}
           </p>
@@ -72,9 +89,12 @@ export function HabitDetailPage() {
       </header>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Current streak" value={`${stats.currentStreak} d`} />
-        <Stat label="Longest streak" value={`${stats.longestStreak} d`} />
-        <Stat label="Total check-ins" value={stats.totalCompletions} />
+        <Stat label="Current streak" value={`${stats.currentStreak} ${unit}`} />
+        <Stat label="Longest streak" value={`${stats.longestStreak} ${unit}`} />
+        <Stat
+          label={habit.type === 'boolean' ? 'Total check-ins' : 'Days on target'}
+          value={stats.totalCompletions}
+        />
         <Stat
           label="Last 30 days"
           value={stats.rate30 === null ? '–' : `${Math.round(stats.rate30 * 100)}%`}
@@ -85,8 +105,8 @@ export function HabitDetailPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold">
             {range === 'last'
-              ? `${stats.totalCompletions} check-ins in total`
-              : `${yearCount} check-ins in ${range}`}
+              ? `${stats.totalCompletions} ${hitWord} in total`
+              : `${yearCount} ${hitWord} in ${range}`}
           </h2>
           <label className="text-sm">
             <span className="sr-only">Range</span>
@@ -115,6 +135,7 @@ export function HabitDetailPage() {
           palette={habit.color}
           isScheduled={(d) => isScheduled(habit, d)}
           onCellClick={setOpenDate}
+          describe={(d) => `${formatLong(d)}: ${formatProgress(habit, values.get(d))}`}
           label={`${habit.name} heatmap`}
         />
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -123,10 +144,33 @@ export function HabitDetailPage() {
         </div>
       </Card>
 
-      <DaySheet
+      <Card className="space-y-4">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold">Patterns</h2>
+          <Button
+            variant="ghost"
+            className="min-h-8 px-2 text-xs"
+            aria-pressed={showTable}
+            onClick={() => setShowTable((s) => !s)}
+          >
+            {showTable ? 'Hide table' : 'Show as table'}
+          </Button>
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <BarChart
+            title="By weekday · last 12 months"
+            bars={byWeekday}
+            palette={habit.color}
+            showTable={showTable}
+          />
+          <BarChart title="By month" bars={byMonth} palette={habit.color} showTable={showTable} />
+        </div>
+      </Card>
+
+      <LogSheet
         habit={habit}
         date={openDate}
-        done={openDate ? values.has(openDate) : false}
+        value={openDate ? (values.get(openDate) ?? 0) : 0}
         scheduled={openDate ? isScheduled(habit, openDate) : true}
         onClose={() => setOpenDate(null)}
       />

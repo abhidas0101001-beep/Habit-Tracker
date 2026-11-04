@@ -2,7 +2,48 @@ import { useRef, useState } from 'react';
 import { Button, Card } from '../components/ui';
 import { exportData, importData } from '../data/repo';
 import { todayKey } from '../domain/dates';
+import { isIOS, isStandalone, useInstallPrompt } from '../hooks/install';
 import { updateSettings, useSettings, type Theme } from '../hooks/settings';
+
+function InstallCard() {
+  const { available, install } = useInstallPrompt();
+  let body;
+  if (isStandalone()) {
+    body = <p className="text-sm text-muted">Installed. You’re using the app version.</p>;
+  } else if (available) {
+    body = (
+      <>
+        <p className="text-sm text-muted">
+          Add Habit Tracker to your home screen or dock. It works offline.
+        </p>
+        <Button variant="primary" onClick={() => void install()}>
+          Install app
+        </Button>
+      </>
+    );
+  } else if (isIOS()) {
+    body = (
+      <p className="text-sm text-muted">
+        In Safari, tap <strong className="text-fg">Share</strong>, then{' '}
+        <strong className="text-fg">Add to Home Screen</strong>.
+      </p>
+    );
+  } else {
+    body = (
+      <p className="text-sm text-muted">
+        Use your browser’s <strong className="text-fg">Install</strong> or{' '}
+        <strong className="text-fg">Add to Home Screen</strong> option. It works offline once
+        installed.
+      </p>
+    );
+  }
+  return (
+    <Card className="space-y-3">
+      <h2 className="text-sm font-semibold">Install</h2>
+      {body}
+    </Card>
+  );
+}
 
 function Segmented<T extends string | number>({
   label,
@@ -94,11 +135,13 @@ export function SettingsPage() {
         />
       </Card>
 
+      <InstallCard />
+
       <Card className="space-y-3">
         <h2 className="text-sm font-semibold">Your data</h2>
         <p className="text-sm text-muted">
-          Everything is stored on this device. Export a backup now and then; sync across devices
-          comes in a later version.
+          Everything is stored on this device and works offline. Export a backup now and then; sync
+          across devices comes in a later version.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button onClick={onExport}>Export JSON</Button>

@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet } from 'react-router';
 import { buttonClass } from '../components/ui';
+import { UpdatePrompt } from '../components/UpdatePrompt';
 
 const NAV = [
   { to: '/', label: 'Today', icon: TodayIcon, end: true },
@@ -12,7 +13,11 @@ export function Layout() {
     <div className="min-h-dvh md:flex">
       {/* Tablet / desktop: side rail */}
       <aside className="sticky top-0 hidden h-dvh w-20 shrink-0 flex-col border-r border-line bg-surface p-3 md:flex lg:w-56">
-        <Link to="/" className="mb-6 flex items-center gap-2 px-2 pt-2 font-semibold">
+        <Link
+          to="/"
+          aria-label="Habit Tracker home"
+          className="mb-6 flex items-center gap-2 px-2 pt-2 font-semibold"
+        >
           <img src="./favicon.svg" alt="" className="h-7 w-7" />
           <span className="hidden lg:inline">Habit Tracker</span>
         </Link>
@@ -46,6 +51,7 @@ export function Layout() {
         </Link>
       </aside>
 
+      <UpdatePrompt />
       <main className="mx-auto w-full min-w-0 max-w-5xl md:flex-1 px-4 pt-4 pb-28 sm:px-6 md:pt-8 md:pb-10">
         <Outlet />
       </main>

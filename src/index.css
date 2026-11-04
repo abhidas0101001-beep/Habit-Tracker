@@ -29,17 +29,67 @@
 }
 
 /* Heatmap palettes: --heat-1 … --heat-4, tuned separately for light and dark. */
-.palette-green { --heat-1: #9be9a8; --heat-2: #40c463; --heat-3: #30a14e; --heat-4: #216e39; }
-.palette-blue { --heat-1: #bfdbfe; --heat-2: #60a5fa; --heat-3: #2563eb; --heat-4: #1e3a8a; }
-.palette-purple { --heat-1: #e9d5ff; --heat-2: #c084fc; --heat-3: #9333ea; --heat-4: #581c87; }
-.palette-orange { --heat-1: #fed7aa; --heat-2: #fb923c; --heat-3: #ea580c; --heat-4: #9a3412; }
-.palette-pink { --heat-1: #fbcfe8; --heat-2: #f472b6; --heat-3: #db2777; --heat-4: #831843; }
+.palette-green {
+  --heat-1: #9be9a8;
+  --heat-2: #40c463;
+  --heat-3: #30a14e;
+  --heat-4: #216e39;
+}
+.palette-blue {
+  --heat-1: #bfdbfe;
+  --heat-2: #60a5fa;
+  --heat-3: #2563eb;
+  --heat-4: #1e3a8a;
+}
+.palette-purple {
+  --heat-1: #e9d5ff;
+  --heat-2: #c084fc;
+  --heat-3: #9333ea;
+  --heat-4: #581c87;
+}
+.palette-orange {
+  --heat-1: #fed7aa;
+  --heat-2: #fb923c;
+  --heat-3: #ea580c;
+  --heat-4: #9a3412;
+}
+.palette-pink {
+  --heat-1: #fbcfe8;
+  --heat-2: #f472b6;
+  --heat-3: #db2777;
+  --heat-4: #831843;
+}
 
-.dark .palette-green { --heat-1: #0e4429; --heat-2: #006d32; --heat-3: #26a641; --heat-4: #39d353; }
-.dark .palette-blue { --heat-1: #172554; --heat-2: #1e40af; --heat-3: #3b82f6; --heat-4: #93c5fd; }
-.dark .palette-purple { --heat-1: #3b0764; --heat-2: #6b21a8; --heat-3: #a855f7; --heat-4: #d8b4fe; }
-.dark .palette-orange { --heat-1: #431407; --heat-2: #9a3412; --heat-3: #f97316; --heat-4: #fdba74; }
-.dark .palette-pink { --heat-1: #500724; --heat-2: #9d174d; --heat-3: #ec4899; --heat-4: #f9a8d4; }
+.dark .palette-green {
+  --heat-1: #0e4429;
+  --heat-2: #006d32;
+  --heat-3: #26a641;
+  --heat-4: #39d353;
+}
+.dark .palette-blue {
+  --heat-1: #172554;
+  --heat-2: #1e40af;
+  --heat-3: #3b82f6;
+  --heat-4: #93c5fd;
+}
+.dark .palette-purple {
+  --heat-1: #3b0764;
+  --heat-2: #6b21a8;
+  --heat-3: #a855f7;
+  --heat-4: #d8b4fe;
+}
+.dark .palette-orange {
+  --heat-1: #431407;
+  --heat-2: #9a3412;
+  --heat-3: #f97316;
+  --heat-4: #fdba74;
+}
+.dark .palette-pink {
+  --heat-1: #500724;
+  --heat-2: #9d174d;
+  --heat-3: #ec4899;
+  --heat-4: #f9a8d4;
+}
 
 @theme inline {
   --color-bg: var(--bg);
@@ -60,9 +110,22 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Keep focused or scrolled-to elements clear of the phone tab bar. */
+@media (max-width: 767px) {
+  html {
+    scroll-padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
+}
+
 body {
   font-family:
-    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
     sans-serif;
 }
 

@@ -6,15 +6,19 @@ so it works offline.
 
 See [PLAN.md](PLAN.md) for the full product and technical plan.
 
-## What works (Phase 1 MVP)
+## What works (Phases 1–2)
 
-- Create, edit, archive and delete habits (name, emoji, colour, every day or specific weekdays)
-- **Today** screen: one tap to check a habit off; on desktop, keys `1`–`9` toggle habits and `n` adds one
+- Create, edit, archive and delete habits (name, emoji, colour)
+  - Types: **yes/no**, **count** (e.g. 8 glasses) and **minutes** (e.g. 30 min)
+  - Schedules: every day, specific weekdays, or **N times a week** (streaks counted in weeks)
+- **Today** screen: one tap to check a habit off or add 1; minutes open a quick-add sheet (+5 / +15 / +30); on desktop, keys `1`–`9` log habits and `n` adds one
 - **Heatmaps**: per habit (last 12 months or any calendar year), all habits combined, and a 12-week strip on Today
   - Five shading levels, month and weekday labels, tooltips, faded rest days
   - Tap or press Enter on a day to change it; arrow keys move between days
   - Fits the screen on desktop and tablet; scrolls sideways on phones, starting at today
-- Current and longest streaks, total check-ins, 30-day completion rate
+- Current and longest streaks, days on target, 30-day completion rate
+- Charts: completion by weekday and by month, each with a table view
+- Installable app (home screen / dock) that works offline, with an update prompt
 - Light / dark / system theme, Monday or Sunday week start
 - JSON export and import (newer records win, so re-importing is safe)
 

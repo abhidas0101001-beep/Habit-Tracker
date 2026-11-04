@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from './db';
 import {
+  addValue,
   createHabit,
   deleteHabit,
   exportData,
@@ -52,5 +53,23 @@ describe('repo', () => {
 
   it('rejects files that are not exports', async () => {
     await expect(importData({ foo: 1 })).rejects.toThrow(/not a Habit Tracker export/);
+  });
+});
+
+describe('count habits', () => {
+  it('adds to and subtracts from a day without going below zero', async () => {
+    const h = await createHabit({
+      name: 'Water',
+      color: 'blue',
+      schedule: { kind: 'daily' },
+      type: 'count',
+      target: 8,
+      unit: 'glasses',
+    });
+    expect(h.type).toBe('count');
+    expect(await addValue(h.id, '2026-11-04', 1)).toBe(1);
+    expect(await addValue(h.id, '2026-11-04', 5)).toBe(6);
+    expect(await addValue(h.id, '2026-11-04', -10)).toBe(0);
+    expect((await getValues(h.id, '2026-11-04', '2026-11-04')).size).toBe(0);
   });
 });

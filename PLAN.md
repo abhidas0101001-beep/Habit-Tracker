@@ -338,13 +338,13 @@ habit-tracker/
 - [x] JSON export/import
 
 ### Phase 2: Richer habits + PWA (≈ 1–2 weeks)
-- [ ] Count and duration habit types, schedules (weekdays, N per week)
-- [ ] Rest-day styling, overview (all-habits) heatmap
-- [ ] Tap-to-edit past days via bottom sheet
-- [ ] Keyboard navigation + full a11y pass
-- [ ] Dark mode + palettes
-- [ ] Service worker, manifest, install prompt, offline test
-- [ ] Stats charts (weekday bars, monthly trend)
+- [x] Count and duration habit types, schedules (weekdays, N per week)
+- [x] Rest-day styling, overview (all-habits) heatmap
+- [x] Tap-to-edit past days via bottom sheet
+- [x] Keyboard navigation + a11y pass (axe checks in E2E, table view for charts)
+- [x] Dark mode + palettes
+- [x] Service worker, manifest, install prompt, offline test
+- [x] Stats charts (weekday bars, monthly trend)
 
 ### Phase 3: Accounts + sync (≈ 1–2 weeks)
 - [ ] Supabase project (free plan), tables, RLS policies

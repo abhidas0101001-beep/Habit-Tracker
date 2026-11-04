@@ -6,7 +6,8 @@ import type { Entry, Habit } from '../domain/types';
 const now = () => new Date().toISOString();
 export const entryId = (habitId: string, date: DateKey) => `${habitId}:${date}`;
 
-export type HabitInput = Pick<Habit, 'name' | 'icon' | 'color' | 'schedule'>;
+export type HabitInput = Pick<Habit, 'name' | 'icon' | 'color' | 'schedule'> &
+  Partial<Pick<Habit, 'type' | 'target' | 'unit'>>;
 
 /** Habits that aren't deleted, in display order. Archived ones are included. */
 export async function listHabits(): Promise<Habit[]> {
@@ -78,6 +79,15 @@ export async function setValue(habitId: string, date: DateKey, value: number): P
     updatedAt: now(),
     deleted: value <= 0,
   });
+}
+
+/** Add `delta` (may be negative) to a day's value, never going below zero. */
+export async function addValue(habitId: string, date: DateKey, delta: number): Promise<number> {
+  const existing = await db.entries.get(entryId(habitId, date));
+  const current = existing && !existing.deleted ? existing.value : 0;
+  const next = Math.max(0, current + delta);
+  await setValue(habitId, date, next);
+  return next;
 }
 
 export async function toggleDone(habitId: string, date: DateKey): Promise<boolean> {

@@ -15,6 +15,8 @@ export interface Habit {
   type: HabitType;
   /** 1 for boolean habits; count or minutes otherwise. */
   target: number;
+  /** Unit shown for count habits, e.g. "glasses". Duration habits always use minutes. */
+  unit?: string;
   schedule: Schedule;
   reminderTime?: string;
   order: number;

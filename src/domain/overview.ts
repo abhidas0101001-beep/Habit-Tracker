@@ -24,8 +24,12 @@ export function overviewRatios(
     let doneScore = 0;
     for (const t of tracked) {
       if (d < t.start || !isScheduled(t.habit, d)) continue;
+      const ratio = ratioFor(t.habit, t.values.get(d));
+      // A "N times per week" habit isn't due on any particular day, so it only
+      // counts on days it was done.
+      if (t.habit.schedule.kind === 'timesPerWeek' && ratio === 0) continue;
       due++;
-      doneScore += ratioFor(t.habit, t.values.get(d));
+      doneScore += ratio;
     }
     if (due > 0 && doneScore > 0) out.set(d, doneScore / due);
   }

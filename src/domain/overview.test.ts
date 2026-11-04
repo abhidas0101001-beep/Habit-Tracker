@@ -38,3 +38,22 @@ describe('overviewRatios', () => {
     expect(r.get('2026-11-02')).toBeCloseTo(2 / 3); // Monday: all three due
   });
 });
+
+describe('overviewRatios with weekly goals', () => {
+  it('counts an N-per-week habit only on days it was done', () => {
+    const habits = [habit('a'), habit('w', { schedule: { kind: 'timesPerWeek', times: 3 } })];
+    const values = new Map([
+      [
+        'a',
+        new Map([
+          ['2026-11-01', 1],
+          ['2026-11-02', 1],
+        ]),
+      ],
+      ['w', new Map([['2026-11-02', 1]])],
+    ]);
+    const r = overviewRatios(habits, values, '2026-11-01', '2026-11-02');
+    expect(r.get('2026-11-01')).toBe(1);
+    expect(r.get('2026-11-02')).toBe(1);
+  });
+});

@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { Heatmap, HeatmapLegend } from '../components/heatmap/Heatmap';
 import { Card, HabitBadge, buttonClass } from '../components/ui';
 import { addDaysKey, formatLong } from '../domain/dates';
+import { formatProgress } from '../domain/format';
 import { habitRatios, overviewRatios } from '../domain/overview';
 import { describeSchedule, isScheduled } from '../domain/schedule';
 import { computeStats } from '../domain/stats';
@@ -100,7 +101,10 @@ function HabitHeatmapCard({
 }) {
   const v = values.get(habit.id);
   const ratios = useMemo(() => habitRatios(habit, v), [habit, v]);
-  const stats = useMemo(() => computeStats(habit, v ?? new Map(), today), [habit, v, today]);
+  const stats = useMemo(
+    () => computeStats(habit, v ?? new Map(), today, weekStart),
+    [habit, v, today, weekStart],
+  );
   return (
     <Card className="space-y-3">
       <Link to={`/habits/${habit.id}`} className="flex items-center gap-3">
@@ -113,7 +117,7 @@ function HabitHeatmapCard({
           <span className="block text-base font-semibold text-fg tabular-nums">
             {stats.currentStreak}
           </span>
-          day streak
+          {stats.streakUnit} streak
         </span>
       </Link>
       <Heatmap
@@ -123,6 +127,7 @@ function HabitHeatmapCard({
         weekStart={weekStart}
         palette={habit.color}
         isScheduled={(d) => isScheduled(habit, d)}
+        describe={(d) => `${formatLong(d)}: ${formatProgress(habit, v?.get(d))}`}
         label={`${habit.name}, last 26 weeks`}
         maxCell={20}
       />
