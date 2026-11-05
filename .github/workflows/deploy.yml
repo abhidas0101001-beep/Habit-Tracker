@@ -28,6 +28,11 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+        env:
+          # Public by design (the browser needs them); Row Level Security protects the data.
+          # When these secrets are missing the app builds without sync.
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

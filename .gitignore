@@ -1,6 +1,8 @@
 node_modules
 dist
+dist-sync
 *.tsbuildinfo
 test-results
 playwright-report
 .DS_Store
+.env.local

@@ -1,12 +1,12 @@
 # Habit Tracker
 
 A personal habit tracker with a GitHub-style contribution heatmap. It runs in the
-browser on laptop, tablet and phone, and stores everything on the device (IndexedDB),
-so it works offline.
+browser on laptop, tablet and phone, stores everything on the device (IndexedDB) so it
+works offline, and optionally syncs between your devices through a free Supabase project.
 
 See [PLAN.md](PLAN.md) for the full product and technical plan.
 
-## What works (Phases 1–2)
+## What works (Phases 1–3)
 
 - Create, edit, archive and delete habits (name, emoji, colour)
   - Types: **yes/no**, **count** (e.g. 8 glasses) and **minutes** (e.g. 30 min)
@@ -21,13 +21,17 @@ See [PLAN.md](PLAN.md) for the full product and technical plan.
 - Installable app (home screen / dock) that works offline, with an update prompt
 - Light / dark / system theme, Monday or Sunday week start
 - JSON export and import (newer records win, so re-importing is safe)
+- **Sync** (once set up, see [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md)): sign in with an
+  emailed code; changes upload in the background and reach other devices live; offline edits
+  sync later, and the newest edit wins. A keep-alive job stops the free project from pausing,
+  and a nightly job keeps encrypted backups.
 
 ## Development
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # unit + component tests (Vitest)
+npm test           # unit, component, sync-engine and database-schema tests (Vitest)
 npm run e2e        # browser tests at desktop, tablet and phone sizes (Playwright)
 npm run build      # production build in dist/
 ```

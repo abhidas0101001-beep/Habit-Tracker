@@ -1,0 +1,59 @@
+name: Nightly backup
+
+# Exports all habits and entries from Supabase, encrypts the file with
+# BACKUP_PASSPHRASE, and keeps it as a workflow artifact for 90 days.
+# The repository is public, so the backup is never stored unencrypted.
+# Restore: download the artifact, run
+#   gpg --decrypt habit-tracker-backup.json.gpg > backup.json
+# and import backup.json in the app (Settings → Import JSON).
+on:
+  schedule:
+    - cron: '41 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secrets
+        id: check
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::notice::Backup secrets are not set yet; skipping."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.check.outputs.ready == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.ready == 'true'
+        with:
+          node-version: 22
+      - name: Export and encrypt
+        if: steps.check.outputs.ready == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          umask 077
+          node scripts/backup.mjs > "$RUNNER_TEMP/backup.json"
+          gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 \
+            --output habit-tracker-backup.json.gpg "$RUNNER_TEMP/backup.json" <<< "$BACKUP_PASSPHRASE"
+          rm "$RUNNER_TEMP/backup.json"
+      - uses: actions/upload-artifact@v4
+        if: steps.check.outputs.ready == 'true'
+        with:
+          name: habit-tracker-backup-${{ github.run_id }}
+          path: habit-tracker-backup.json.gpg
+          retention-days: 90
+          if-no-files-found: error

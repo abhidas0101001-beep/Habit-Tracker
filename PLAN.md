@@ -268,14 +268,15 @@ for 10 daily habits, against a 500 MB limit. Three extra steps:
    activity. Nothing is lost (every device keeps its own copy and catches up
    later), but sync stops until the project is restored in the dashboard. A
    scheduled GitHub Action (`.github/workflows/keepalive.yml`) runs every
-   3 days and makes one small read request using a read-only key stored as a
-   repository secret.
+   2 days and calls a tiny `ping()` database function that reads no data.
 2. **Lock sign-ups.** After the owner's account exists, turn off
    "Allow new users to sign up" in Supabase Auth settings. RLS
    (`user_id = auth.uid()`) stays as a second safeguard.
 3. **Own the backups.** Free-plan backups are limited, so a nightly GitHub
-   Action exports `habits` and `entries` to JSON and commits them to a
-   **private** backup repository. The in-app JSON export is the manual fallback.
+   Action exports `habits` and `entries` in the app's export format, encrypts
+   the file with a passphrase (GPG, AES-256) and keeps it as a workflow artifact
+   for 90 days. The repository is public, so backups are never stored unencrypted.
+   The in-app JSON export is the manual fallback.
 
 ---
 
@@ -347,13 +348,14 @@ habit-tracker/
 - [x] Stats charts (weekday bars, monthly trend)
 
 ### Phase 3: Accounts + sync (≈ 1–2 weeks)
-- [ ] Supabase project (free plan), tables, RLS policies
-- [ ] Email magic-link sign-in for the owner, then disable new sign-ups
-- [ ] Push/pull sync with tombstones, Realtime updates
-- [ ] Upload existing local data on first sign-in
-- [ ] Keep-alive GitHub Action (every 3 days) so the project never pauses
-- [ ] Nightly JSON backup Action to a private repository
-- [ ] Conflict and offline E2E tests (two browser contexts)
+- [x] Schema: tables, RLS policies, last-write-wins `push_changes`, single-account lock (`supabase/schema.sql`, tested in PGlite)
+- [ ] Owner creates the free Supabase project and adds the GitHub secrets ([docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md))
+- [x] Email sign-in with a one-time code (works in installed apps) or magic link; sign-ups disabled after the first account
+- [x] Push/pull sync with tombstones, Realtime updates
+- [x] Upload existing local data on first sign-in
+- [x] Keep-alive GitHub Action (every 2 days) so the project never pauses
+- [x] Nightly backup Action: encrypted (GPG) artifact kept 90 days, importable in the app
+- [x] Conflict and offline tests (two simulated devices; two browser contexts against a mocked Supabase)
 
 ### Phase 4: Native packaging + reminders (≈ 1–2 weeks)
 - [ ] Capacitor iOS/Android builds

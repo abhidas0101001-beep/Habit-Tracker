@@ -24,6 +24,8 @@ export interface Habit {
   archivedAt?: string;
   updatedAt: string;
   deleted?: boolean;
+  /** Local only: 1 while the change hasn't been uploaded yet. */
+  pending?: 0 | 1;
 }
 
 /** One entry per habit per local calendar day. */
@@ -35,6 +37,8 @@ export interface Entry {
   note?: string;
   updatedAt: string;
   deleted?: boolean;
+  /** Local only: 1 while the change hasn't been uploaded yet. */
+  pending?: 0 | 1;
 }
 
 /** 0 = Sunday, 1 = Monday. */

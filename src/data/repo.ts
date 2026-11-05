@@ -1,9 +1,28 @@
+import { emitLocalChange } from './changes';
 import { db } from './db';
 import type { DateKey } from '../domain/dates';
 import { isValidKey } from '../domain/dates';
 import type { Entry, Habit } from '../domain/types';
 
 const now = () => new Date().toISOString();
+
+/**
+ * Edit timestamp for a record: now, but always later than its previous edit.
+ * Another device's clock may run ahead; without this a fresh local edit could
+ * look older than the version it replaces and lose under last-write-wins.
+ */
+export function nextStamp(previous?: string): string {
+  const t = Date.now();
+  const prev = previous ? Date.parse(previous) : NaN;
+  return new Date(Number.isFinite(prev) && prev >= t ? prev + 1 : t).toISOString();
+}
+
+/** Run a local write, then let sync know there is something to upload. */
+async function write<T>(fn: () => Promise<T>): Promise<T> {
+  const result = await fn();
+  emitLocalChange();
+  return result;
+}
 export const entryId = (habitId: string, date: DateKey) => `${habitId}:${date}`;
 
 export type HabitInput = Pick<Habit, 'name' | 'icon' | 'color' | 'schedule'> &
@@ -27,31 +46,57 @@ export async function createHabit(input: HabitInput): Promise<Habit> {
     updatedAt: t,
     ...input,
     name: input.name.trim(),
+    pending: 1,
   };
-  await db.habits.add(habit);
+  await write(() => db.habits.add(habit));
   return habit;
 }
 
 export async function updateHabit(id: string, changes: Partial<Habit>): Promise<void> {
-  await db.habits.update(id, { ...changes, updatedAt: now() });
+  await write(async () => {
+    const existing = await db.habits.get(id);
+    await db.habits.update(id, {
+      ...changes,
+      updatedAt: nextStamp(existing?.updatedAt),
+      pending: 1,
+    });
+  });
 }
 
 export async function setArchived(id: string, archived: boolean): Promise<void> {
   const habit = await db.habits.get(id);
   if (!habit) return;
   const { archivedAt: _ignored, ...rest } = habit;
-  await db.habits.put(
-    archived ? { ...rest, archivedAt: now(), updatedAt: now() } : { ...rest, updatedAt: now() },
+  const updatedAt = nextStamp(habit.updatedAt);
+  await write(() =>
+    db.habits.put(
+      archived
+        ? { ...rest, archivedAt: now(), updatedAt, pending: 1 }
+        : { ...rest, updatedAt, pending: 1 },
+    ),
   );
 }
 
 /** Soft-delete (tombstone) the habit and its entries so the deletion can sync later. */
 export async function deleteHabit(id: string): Promise<void> {
-  const t = now();
-  await db.transaction('rw', db.habits, db.entries, async () => {
-    await db.habits.update(id, { deleted: true, updatedAt: t });
-    await db.entries.where('habitId').equals(id).modify({ deleted: true, updatedAt: t });
-  });
+  await write(() =>
+    db.transaction('rw', db.habits, db.entries, async () => {
+      const habit = await db.habits.get(id);
+      await db.habits.update(id, {
+        deleted: true,
+        updatedAt: nextStamp(habit?.updatedAt),
+        pending: 1,
+      });
+      await db.entries
+        .where('habitId')
+        .equals(id)
+        .modify((e) => {
+          e.deleted = true;
+          e.updatedAt = nextStamp(e.updatedAt);
+          e.pending = 1;
+        });
+    }),
+  );
 }
 
 /** Entry values for one habit between two dates (inclusive), as date → value. */
@@ -69,15 +114,18 @@ export async function getValues(
 
 export async function setValue(habitId: string, date: DateKey, value: number): Promise<void> {
   const id = entryId(habitId, date);
-  const existing = await db.entries.get(id);
-  await db.entries.put({
-    ...existing,
-    id,
-    habitId,
-    date,
-    value,
-    updatedAt: now(),
-    deleted: value <= 0,
+  await write(async () => {
+    const existing = await db.entries.get(id);
+    await db.entries.put({
+      ...existing,
+      id,
+      habitId,
+      date,
+      value: Math.max(0, value),
+      updatedAt: nextStamp(existing?.updatedAt),
+      deleted: value <= 0,
+      pending: 1,
+    });
   });
 }
 
@@ -109,7 +157,15 @@ export interface ExportFile {
 
 export async function exportData(): Promise<ExportFile> {
   const [habits, entries] = await Promise.all([db.habits.toArray(), db.entries.toArray()]);
-  return { app: 'habit-tracker', version: 1, exportedAt: now(), habits, entries };
+  // `pending` is this device's upload state, not part of the data.
+  const strip = <T extends { pending?: 0 | 1 }>({ pending: _p, ...rest }: T) => rest as T;
+  return {
+    app: 'habit-tracker',
+    version: 1,
+    exportedAt: now(),
+    habits: habits.map(strip),
+    entries: entries.map(strip),
+  };
 }
 
 export interface ImportResult {
@@ -151,7 +207,7 @@ export async function importData(raw: unknown): Promise<ImportResult> {
     const newerHabits = habits.filter(
       (h) => !localHabits.get(h.id) || localHabits.get(h.id)!.updatedAt < h.updatedAt,
     );
-    await db.habits.bulkPut(newerHabits);
+    await db.habits.bulkPut(newerHabits.map((h) => ({ ...h, pending: 1 as const })));
     changedHabits = newerHabits.length;
 
     const localEntries = new Map(
@@ -160,8 +216,9 @@ export async function importData(raw: unknown): Promise<ImportResult> {
     const newerEntries = entries.filter(
       (e) => !localEntries.get(e.id) || localEntries.get(e.id)!.updatedAt < e.updatedAt,
     );
-    await db.entries.bulkPut(newerEntries);
+    await db.entries.bulkPut(newerEntries.map((e) => ({ ...e, pending: 1 as const })));
     changedEntries = newerEntries.length;
   });
+  if (changedHabits || changedEntries) emitLocalChange();
   return { habits: changedHabits, entries: changedEntries };
 }

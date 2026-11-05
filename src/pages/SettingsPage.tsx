@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { SyncCard } from '../components/SyncCard';
 import { Button, Card } from '../components/ui';
 import { exportData, importData } from '../data/repo';
 import { todayKey } from '../domain/dates';
@@ -135,13 +136,15 @@ export function SettingsPage() {
         />
       </Card>
 
+      <SyncCard />
+
       <InstallCard />
 
       <Card className="space-y-3">
         <h2 className="text-sm font-semibold">Your data</h2>
         <p className="text-sm text-muted">
-          Everything is stored on this device and works offline. Export a backup now and then; sync
-          across devices comes in a later version.
+          Everything is stored on this device and works offline. When you’re signed in to sync,
+          changes are also copied to your account. You can export a backup at any time.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button onClick={onExport}>Export JSON</Button>

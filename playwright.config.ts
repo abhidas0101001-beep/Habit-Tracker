@@ -11,11 +11,20 @@ export default defineConfig({
     baseURL: 'http://localhost:4173',
     launchOptions: { executablePath },
   },
-  webServer: {
-    command: 'npm run build && npx vite preview --port 4173 --strictPort',
-    port: 4173,
-    reuseExistingServer: !process.env.CI,
-  },
+  webServer: [
+    {
+      command: 'npm run build && npx vite preview --port 4173 --strictPort',
+      port: 4173,
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      // Same app built with sync turned on, pointed at a fake Supabase that tests mock.
+      command:
+        'VITE_SUPABASE_URL=https://fake-project.supabase.co VITE_SUPABASE_ANON_KEY=test-anon-key npx vite build --outDir dist-sync && npx vite preview --outDir dist-sync --port 4174 --strictPort',
+      port: 4174,
+      reuseExistingServer: !process.env.CI,
+    },
+  ],
   projects: [
     {
       name: 'desktop',
